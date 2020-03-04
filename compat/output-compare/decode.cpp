@@ -7,6 +7,9 @@
 #include <unistd.h>
 #include <iostream>
 #include <libgen.h>
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#endif
 
 struct TempFile {
     int fd = -1;
@@ -60,17 +63,21 @@ pid_t spawnCodecProcess(const TempFile& file, const std::string& binary) {
         std::cerr << "Unable to exec: " << std::string(buffer) << std::endl;
 
         free(arg);
-        
+
         exit(EXIT_FAILURE);
     }
     return pid;
 }
 
 std::string getExeDirectory() {
-    const int MAX_PATH_LENGTH = 4096 + 1;
-    char exePath[MAX_PATH_LENGTH];
+    uint32_t size = 4097;
+    char exePath[4097];
+#ifdef __APPLE__
+    _NSGetExecutablePath(exePath, &size);
+#else
     memset(exePath, 0, sizeof(exePath));
     readlink("/proc/self/exe", exePath, sizeof(exePath));
+#endif
     return std::string(dirname(exePath));
 }
 
